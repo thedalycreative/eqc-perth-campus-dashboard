@@ -5,7 +5,7 @@ FROM node:20-alpine AS build
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci
+RUN npm install
 
 COPY . .
 RUN npm run build
@@ -19,7 +19,7 @@ ENV NODE_ENV=production
 RUN apk add --no-cache tini
 
 COPY package*.json ./
-RUN npm ci --omit=dev && npm cache clean --force
+RUN npm install --omit=dev && npm cache clean --force
 
 # Copy built artefacts and the server entrypoint.
 COPY --from=build /app/dist ./dist
