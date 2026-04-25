@@ -1,0 +1,15 @@
+# https://cloud.google.com/sdk/gcloud/reference/topic/gcloudignore
+.git
+.gitignore
+.github
+node_modules
+dist
+build
+coverage
+.vscode
+.idea
+.DS_Store
+*.log
+.env
+.env.*
+!.env.example

@@ -1,0 +1,5 @@
+{
+  "name": "EQC Campus Lobby Dashboard",
+  "description": "A live lobby dashboard for EQC Institute of Technology showing room allocations, weather, and upcoming events.",
+  "requestFramePermissions": []
+}
