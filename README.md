@@ -2,12 +2,9 @@
 
 > A live lobby dashboard for the **Equinim College — Perth Campus**. Shows current room allocations, weather, announcements, the campus floorplan, and trainer sign-on — all updating in real time across every screen on campus.
 
-[![Live Site](https://img.shields.io/badge/Live_Site-Visit-1a7a54?style=for-the-badge)](#)
-[![Hosted on Cloud Run](https://img.shields.io/badge/Hosted_on-Google_Cloud_Run-4285F4?style=for-the-badge&logo=googlecloud&logoColor=white)](https://cloud.google.com/run)
+[![Live Site](https://img.shields.io/badge/Live_Site-Visit-1a7a54?style=for-the-badge)](https://eqc-dashboard-v2.onrender.com)
+[![Hosted on Render](https://img.shields.io/badge/Hosted_on-Render-46E3B7?style=for-the-badge&logo=render&logoColor=white)](https://render.com)
 [![Stack](https://img.shields.io/badge/Stack-React_19_·_Vite_·_Express_·_Socket.io-1A1A1A?style=for-the-badge)](#)
-
-> [!NOTE]
-> Replace the **Live Site** badge link above with the Cloud Run URL after the first deploy.
 
 ---
 
