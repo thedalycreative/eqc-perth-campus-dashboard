@@ -24,7 +24,6 @@ import {
   Plus,
   Trash2,
   LogIn,
-  Instagram,
   Coffee,
   Train,
   Layout,
@@ -38,7 +37,9 @@ import {
   CogIcon,
   CalendarDaysIcon,
   MapPinCheckInside,
-  ShieldQuestionIcon
+  ShieldQuestionIcon,
+  Edit3,
+  Save
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { io } from 'socket.io-client';
@@ -172,13 +173,14 @@ const Header = () => {
           <p className="text-3xl text-eqc-muted font-medium mt-1">Perth Campus</p>
         </div>
       </div>
-      <div className="flex items-center gap-6 text-right">
-        <div className="flex items-center gap-6 bg-gray-50 px-8 h-20 rounded-2xl border border-gray-100">
-          <span className="text-2xl font-bold text-eqc-muted tracking-tight">{formattedDate}</span>
-          <div className="w-px h-12 bg-gray-300 mx-2" />
-          <div className="flex items-baseline gap-2">
-            <span className="text-5xl font-bold serif text-eqc-text tracking-tighter leading-none">{formattedTime.split(' ')[0]}</span>
-            <span className="text-2xl font-bold serif text-eqc-text uppercase leading-none">{formattedTime.split(' ')[1]}</span>
+      <div className="flex items-center gap-4 text-right">
+        <HeaderWeather />
+        <div className="flex items-center gap-5 bg-gray-50 px-6 h-20 rounded-2xl border border-gray-100">
+          <span className="text-lg font-bold text-eqc-muted tracking-tight">{formattedDate}</span>
+          <div className="w-px h-12 bg-gray-300" />
+          <div className="flex items-baseline gap-1.5 w-[155px] justify-end tabular-nums">
+            <span className="text-4xl font-bold text-eqc-text tracking-tight leading-none tabular-nums">{formattedTime.split(' ')[0]}</span>
+            <span className="text-base font-bold text-eqc-muted uppercase leading-none w-7 text-left">{formattedTime.split(' ')[1]}</span>
           </div>
         </div>
       </div>
@@ -264,41 +266,81 @@ const RoomItem = ({ room }: RoomItemProps) => {
   );
 };
 
+const EVENT_INTERVAL_MS = 30000;
+
 const EventList = ({ events }: { events: Event[] }) => {
+  const [currentIdx, setCurrentIdx] = useState(0);
+
+  useEffect(() => {
+    if (events.length <= 1) return;
+    setCurrentIdx((idx) => (idx >= events.length ? 0 : idx));
+    const timer = setInterval(() => {
+      setCurrentIdx((idx) => (idx + 1) % events.length);
+    }, EVENT_INTERVAL_MS);
+    return () => clearInterval(timer);
+  }, [events.length]);
+
+  const currentEvent = events[currentIdx];
+
   return (
     <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-lg h-full flex flex-col overflow-hidden">
-      <div className="flex items-center gap-3 mb-4 shrink-0">
-        <div className="w-10 h-10 bg-eqc-green/10 flex items-center justify-center rounded-full">
-          <CalendarDaysIcon size={30} className="text-eqc-green" />
+      <div className="flex items-center justify-between mb-4 shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-eqc-green/10 flex items-center justify-center rounded-full">
+            <CalendarDaysIcon size={26} className="text-eqc-green" />
+          </div>
+          <h2 className="text-2xl text-eqc-green font-bold serif">Upcoming Events</h2>
         </div>
-        <h2 className="text-2xl text-eqc-green font-bold serif">Upcoming Events:</h2>
-      </div>
-
-      <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4">
-        {events.length === 0 ? (
-          <p className="text-eqc-muted italic text-base">No events scheduled.</p>
-        ) : (
-          events.map((event) => (
-            <motion.div
-              key={event.id}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="border-l-4 border-eqc-green pl-4 py-0.5"
-            >
-              <div className="flex flex-col gap-0.5 mb-1">
-                <h3 className="text-xl font-bold serif text-eqc-text leading-tight">{event.title}</h3>
-                <p className="text-xs font-bold text-eqc-green uppercase tracking-wider">
-                  {new Date(event.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
-                </p>
-              </div>
-              <p className="text-sm text-eqc-muted leading-relaxed line-clamp-2">{event.description}</p>
-            </motion.div>
-          ))
+        {events.length > 1 && (
+          <div className="flex items-center gap-1.5">
+            {events.map((_, idx) => (
+              <div
+                key={idx}
+                className={`h-1.5 rounded-full transition-all ${idx === currentIdx ? 'bg-eqc-green w-5' : 'bg-gray-200 w-1.5'}`}
+              />
+            ))}
+          </div>
         )}
       </div>
 
-      <div className="mt-4 pt-3 border-t border-gray-100 text-[10px] text-eqc-muted shrink-0">
-        Questions? Contact <span className="text-eqc-green font-bold">trainer@equinimcollege.com</span>
+      <div className="flex-1 flex flex-col justify-center min-h-0 relative">
+        {events.length === 0 ? (
+          <p className="text-eqc-muted italic text-base">No events scheduled.</p>
+        ) : (
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentEvent.id}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.4 }}
+              className="border-l-4 border-eqc-green pl-5 py-1"
+            >
+              <p className="text-xs font-bold text-eqc-green uppercase tracking-widest mb-2">
+                {new Date(currentEvent.date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+              </p>
+              <h3 className="text-2xl font-bold serif text-eqc-text leading-tight mb-2">{currentEvent.title}</h3>
+              <p className="text-sm text-eqc-muted leading-relaxed line-clamp-3">{currentEvent.description}</p>
+            </motion.div>
+          </AnimatePresence>
+        )}
+
+        {events.length > 1 && (
+          <motion.div
+            key={`progress-${currentIdx}`}
+            initial={{ width: '0%' }}
+            animate={{ width: '100%' }}
+            transition={{ duration: EVENT_INTERVAL_MS / 1000, ease: 'linear' }}
+            className="absolute bottom-0 left-0 h-0.5 bg-eqc-green/40 rounded-full"
+          />
+        )}
+      </div>
+
+      <div className="mt-4 pt-3 border-t border-gray-100 text-[10px] text-eqc-muted shrink-0 flex justify-between items-center">
+        <span>Questions? <span className="text-eqc-green font-bold">trainer@equinimcollege.com</span></span>
+        {events.length > 1 && (
+          <span className="font-bold tracking-wider uppercase">{currentIdx + 1} / {events.length}</span>
+        )}
       </div>
     </div>
   );
@@ -314,57 +356,109 @@ const WeatherIcon = ({ condition, size = 24 }: { condition: WeatherDay['conditio
   }
 };
 
-const WeatherWidget = () => {
+interface LiveWeather {
+  temperature: number;
+  feelsLike: number;
+  humidity: number;
+  windSpeed: number;
+  condition: WeatherDay['condition'];
+  conditionText: string;
+  forecast: WeatherDay[];
+}
+
+function mapWeatherCode(code: number): { condition: WeatherDay['condition']; text: string } {
+  if (code <= 1) return { condition: 'sunny', text: 'Clear skies' };
+  if (code <= 3) return { condition: 'partly-cloudy', text: 'Partly cloudy' };
+  if (code <= 48) return { condition: 'cloudy', text: 'Overcast' };
+  if (code <= 67 || (code >= 80 && code <= 82)) return { condition: 'rainy', text: 'Rain' };
+  return { condition: 'cloudy', text: 'Cloudy' };
+}
+
+const useWeather = () => {
+  const [weather, setWeather] = useState<LiveWeather | null>(null);
+
+  useEffect(() => {
+    const fetchWeather = async () => {
+      try {
+        const res = await fetch(
+          'https://api.open-meteo.com/v1/forecast?latitude=-31.95&longitude=115.86&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=Australia%2FPerth&forecast_days=5'
+        );
+        const data = await res.json();
+        const current = data.current;
+        const daily = data.daily;
+        const { condition, text } = mapWeatherCode(current.weather_code);
+
+        const dayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+        const forecast: WeatherDay[] = daily.time.map((date: string, i: number) => {
+          const d = new Date(date);
+          return {
+            day: i === 0 ? 'TODAY' : dayNames[d.getDay()],
+            temp: { high: Math.round(daily.temperature_2m_max[i]), low: Math.round(daily.temperature_2m_min[i]) },
+            condition: mapWeatherCode(daily.weather_code[i]).condition,
+          };
+        });
+
+        setWeather({
+          temperature: Math.round(current.temperature_2m),
+          feelsLike: Math.round(current.apparent_temperature),
+          humidity: current.relative_humidity_2m,
+          windSpeed: Math.round(current.wind_speed_10m),
+          condition,
+          conditionText: text,
+          forecast,
+        });
+      } catch {
+        setWeather({
+          temperature: 22,
+          feelsLike: 19,
+          humidity: 63,
+          windSpeed: 25,
+          condition: 'partly-cloudy',
+          conditionText: 'Partly cloudy',
+          forecast: WEATHER_FORECAST,
+        });
+      }
+    };
+
+    fetchWeather();
+    const interval = setInterval(fetchWeather, 15 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return weather;
+};
+
+const HeaderWeather = () => {
+  const weather = useWeather();
+  if (!weather) {
+    return (
+      <div className="flex items-center gap-3 px-5 h-20 bg-gray-50 rounded-2xl border border-gray-100">
+        <Sun size={28} className="text-gray-300 animate-pulse" />
+        <span className="text-sm text-eqc-muted font-medium">Loading weather...</span>
+      </div>
+    );
+  }
+
   return (
-    <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-lg flex-1 flex flex-col overflow-hidden">
-      <div className="flex justify-between items-center mb-6 shrink-0">
-        <div className="flex items-center gap-3">
-          <Sun size={24} className="text-eqc-green" />
-          <h2 className="text-2xl font-bold serif">Perth Weather</h2>
+    <div className="flex items-center gap-4 px-5 h-20 bg-gray-50 rounded-2xl border border-gray-100">
+      <WeatherIcon condition={weather.condition} size={40} />
+      <div className="flex flex-col leading-tight">
+        <div className="flex items-baseline gap-1">
+          <span className="text-3xl font-bold serif text-eqc-text leading-none">{weather.temperature}</span>
+          <span className="text-lg font-bold serif text-eqc-text leading-none">°C</span>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-green-500 uppercase tracking-widest">Live</span>
-          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-        </div>
+        <span className="text-xs font-medium text-eqc-muted">{weather.conditionText}</span>
       </div>
-
-      <div className="flex items-center justify-between mb-8 shrink-0">
-        <div className="flex items-center gap-5">
-          <WeatherIcon condition="partly-cloudy" size={64} />
-          <div className="flex flex-col">
-            <div className="flex items-baseline">
-              <span className="text-6xl font-bold serif leading-none">22</span>
-              <span className="text-2xl font-bold serif ml-1 leading-none">°C</span>
-            </div>
-            <p className="text-sm font-medium text-eqc-muted mt-1">Mainly clear</p>
-          </div>
+      <div className="w-px h-12 bg-gray-300 mx-1" />
+      <div className="flex flex-col gap-1.5">
+        <div className="flex items-center gap-1.5 text-xs text-eqc-muted">
+          <Droplets size={12} className="text-blue-400" />
+          <span className="font-bold">{weather.humidity}%</span>
         </div>
-        <div className="text-right">
-          <p className="text-sm text-eqc-muted font-bold mb-2">Feels 19°C</p>
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-2 justify-end text-xs text-eqc-muted">
-              <Droplets size={14} className="text-blue-400" />
-              <span className="font-bold">63%</span>
-            </div>
-            <div className="flex items-center gap-2 justify-end text-xs text-eqc-muted">
-              <Wind size={14} className="text-gray-400" />
-              <span className="font-bold">25 km/h</span>
-            </div>
-          </div>
+        <div className="flex items-center gap-1.5 text-xs text-eqc-muted">
+          <Wind size={12} className="text-gray-400" />
+          <span className="font-bold">{weather.windSpeed} km/h</span>
         </div>
-      </div>
-
-      <div className="grid grid-cols-5 gap-2 mt-auto shrink-0">
-        {WEATHER_FORECAST.map((day, idx) => (
-          <div key={idx} className="flex flex-col items-center p-3 bg-gray-50 rounded-xl border border-gray-100 shadow-sm">
-            <span className="text-[10px] font-black text-eqc-muted mb-2 uppercase tracking-tight">{day.day}</span>
-            <WeatherIcon condition={day.condition} size={24} />
-            <div className="mt-2 flex flex-col items-center gap-0.5">
-              <span className="text-sm font-bold">{day.temp.high}°</span>
-              <span className="text-xs text-eqc-muted font-medium">{day.temp.low}°</span>
-            </div>
-          </div>
-        ))}
       </div>
     </div>
   );
@@ -388,12 +482,8 @@ const AdminHub = ({
   const [loginError, setLoginError] = useState("");
   const [statusMessage, setStatusMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
   const [activeTab, setActiveTab] = useState<'rooms' | 'events' | 'announcements'>('rooms');
-
-  // Staff Sign-on State
-  const [selectedRoom, setSelectedRoom] = useState<string>("");
-  const [selectedCourse, setSelectedCourse] = useState<string>("");
-  const [customRoom, setCustomRoom] = useState("");
-  const [customCourse, setCustomCourse] = useState("");
+  const [editingEventId, setEditingEventId] = useState<number | null>(null);
+  const [editEventData, setEditEventData] = useState<Partial<Event>>({});
 
   useEffect(() => {
     if (statusMessage) {
@@ -446,106 +536,23 @@ const AdminHub = ({
     });
   };
 
-  const handleStaffSignOn = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const name = formData.get('name') as string;
-    const intake = formData.get('intake') as string;
-    const topics = formData.get('topics') as string;
-
-    const room = selectedRoom === 'other' ? customRoom : selectedRoom;
-    const course = selectedCourse === 'other' ? customCourse : selectedCourse;
-
-    if (!room || !course) {
-      setStatusMessage({ text: "Please select a room and course.", type: 'error' });
-      return;
+  const handleQuickRoomUpdate = (idx: number, field: keyof RoomAllocation, value: string) => {
+    const newRooms = [...rooms];
+    (newRooms[idx] as any)[field] = value;
+    if (field === 'status' && value === 'available') {
+      newRooms[idx].course = undefined;
+      newRooms[idx].trainer = undefined;
+      newRooms[idx].intake = undefined;
+      newRooms[idx].topic = undefined;
     }
-
-    try {
-      await fetch("/api/staff-signon", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, intake, room, course, topics })
-      });
-
-      // Also update the room allocation if it's one of the main rooms
-      const roomNum = parseInt(room.replace('Room ', ''));
-      if (!isNaN(roomNum) && roomNum >= 1 && roomNum <= 6) {
-        const newRooms = [...rooms];
-        const roomIdx = newRooms.findIndex(r => r.id === roomNum);
-        if (roomIdx !== -1) {
-          newRooms[roomIdx] = {
-            ...newRooms[roomIdx],
-            status: 'live',
-            course: course,
-            trainer: name,
-            intake: intake,
-            topic: topics || "Class in session"
-          };
-          updateRooms(newRooms);
-        }
-      } else if (selectedRoom === 'other') {
-        // Add a temporary room for the day
-        const newRoom: RoomAllocation = {
-          id: Date.now(),
-          roomName: customRoom,
-          status: 'live',
-          course: course,
-          trainer: name,
-          intake: intake,
-          topic: topics || "Class in session"
-        };
-        updateRooms([...rooms, newRoom]);
-      }
-
-      e.currentTarget.reset();
-      setSelectedRoom("");
-      setSelectedCourse("");
-      setCustomRoom("");
-      setCustomCourse("");
-      setStatusMessage({ text: "Successfully signed on!", type: 'success' });
-    } catch (err) {
-      setStatusMessage({ text: "Failed to sign on.", type: 'error' });
-    }
+    updateRooms(newRooms);
   };
 
-  const handleStaffSignOff = async (id: string) => {
-    try {
-      const staffMember = staff.find(s => s.id === id);
-      await fetch("/api/staff-signoff", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id })
-      });
-
-      // Reset the room if it was a main room
-      if (staffMember) {
-        const roomNum = parseInt(staffMember.room.replace('Room ', ''));
-        if (!isNaN(roomNum) && roomNum >= 1 && roomNum <= 6) {
-          const newRooms = [...rooms];
-          const roomIdx = newRooms.findIndex(r => r.id === roomNum);
-          if (roomIdx !== -1) {
-            newRooms[roomIdx] = {
-              ...newRooms[roomIdx],
-              status: 'available',
-              course: undefined,
-              trainer: undefined,
-              intake: undefined,
-              topic: undefined
-            };
-            updateRooms(newRooms);
-          }
-        } else {
-          // If it was a custom room, we might want to remove it or just mark available
-          // For now, let's just remove it if it's not 1-6
-          updateRooms(rooms.filter(r => r.roomName !== staffMember.room));
-        }
-      }
-
-      setStatusMessage({ text: "Successfully signed off.", type: 'success' });
-    } catch (err) {
-      setStatusMessage({ text: "Failed to sign off.", type: 'error' });
-    }
+  const handleSaveEvent = (event: Event) => {
+    updateEvents({ ...event, ...editEventData }, 'update_single');
+    setEditingEventId(null);
+    setEditEventData({});
+    setStatusMessage({ text: "Event updated!", type: 'success' });
   };
 
   if (!isLoggedIn) {
@@ -582,23 +589,22 @@ const AdminHub = ({
             </button>
           </form>
 
-          {/* Trainer Sign-On Notice */}
           <div className="bg-gray-50 rounded-2xl p-5 border border-gray-100 text-center relative overflow-hidden">
             <div className="absolute top-0 left-0 w-1 h-full bg-eqc-green"></div>
             <h3 className="text-sm font-bold text-gray-800 mb-2">Trainer looking to sign on?</h3>
             <p className="text-xs text-gray-500 mb-4 leading-relaxed">
               If you are a trainer checking in for your class, please use the Trainer Sign-On Portal instead of logging in here.
             </p>
-            
+
             <div className="flex items-center justify-center gap-4">
               <div className="bg-white p-2 rounded-xl border border-gray-100 shadow-sm shrink-0">
                 <QRCodeSVG value={`${window.location.origin}/trainer-sign-on.html`} size={64} />
               </div>
               <div className="text-left flex flex-col items-start">
                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Scan or Click</span>
-                <a 
-                  href="/trainer-sign-on.html" 
-                  target="_blank" 
+                <a
+                  href="/trainer-sign-on.html"
+                  target="_blank"
                   className="bg-white border border-gray-200 text-eqc-green text-xs font-bold py-2 px-4 rounded-lg hover:bg-gray-50 transition-colors inline-flex items-center gap-2"
                 >
                   Open Portal <ExternalLink size={14} />
@@ -630,7 +636,6 @@ const AdminHub = ({
           <div className="flex items-center gap-3">
             <Cog size={32} />
             <h2 className="text-2xl font-bold serif">Administration Panel</h2>
-            {/* <!-- Add gap of 20px between h2 and div --> */}
             <div className="ml-20"></div>
             <div className="flex bg-gray-100 p-1 rounded-lg overflow-x-auto no-scrollbar">
               <button
@@ -661,114 +666,121 @@ const AdminHub = ({
         <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
           {activeTab === 'rooms' && (
             <div className="space-y-6">
-              <div className="flex justify-between items-center mb-6">
+              <div className="flex justify-between items-center mb-2">
                 <h3 className="text-xl font-bold flex items-center gap-2"><Layout size={24} className="text-eqc-green" /> Manage Room Allocations</h3>
-                <button
-                  onClick={() => updateRooms([...rooms, { id: Date.now(), roomName: "New Room", status: "available" }])}
-                  className="bg-eqc-green text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2"
-                >
-                  <Plus size={18} /> Add Custom Room
-                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => {
+                      const newRooms = rooms.map(r => ({ ...r, status: 'available' as const, course: undefined, trainer: undefined, intake: undefined, topic: undefined }));
+                      updateRooms(newRooms);
+                      setStatusMessage({ text: "All rooms reset to available.", type: 'success' });
+                    }}
+                    className="bg-orange-50 text-orange-600 px-4 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-orange-100 transition-colors"
+                  >
+                    <X size={18} /> Reset All
+                  </button>
+                  <button
+                    onClick={() => updateRooms([...rooms, { id: Date.now(), roomName: "New Room", status: "available" }])}
+                    className="bg-eqc-green text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2"
+                  >
+                    <Plus size={18} /> Add Room
+                  </button>
+                </div>
               </div>
-              <div className="grid grid-cols-1 gap-4">
+
+              <p className="text-sm text-eqc-muted mb-3">Changes are reflected live on the dashboard. Trainer sign-ons update rooms automatically.</p>
+
+              <div className="rounded-xl border border-gray-200 overflow-hidden">
+                <div className="grid grid-cols-[80px_110px_1fr_1fr_90px_1fr_70px] gap-2 px-3 py-2 bg-gray-100 border-b border-gray-200 text-[10px] font-black uppercase tracking-wider text-eqc-muted">
+                  <span>Room</span>
+                  <span>Status</span>
+                  <span>Course</span>
+                  <span>Trainer</span>
+                  <span>Intake</span>
+                  <span>Topic</span>
+                  <span className="text-right">Actions</span>
+                </div>
                 {rooms.map((room, idx) => {
                   const isCoreRoom = parseInt(room.roomName.replace('Room ', '')) >= 1 && parseInt(room.roomName.replace('Room ', '')) <= 6;
                   return (
-                    <div key={room.id} className="bg-gray-50 p-6 rounded-xl border border-gray-100 grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
-                      <div className="col-span-1">
-                        <label className="block text-[10px] font-bold uppercase mb-1">Room Name</label>
-                        <input
-                          value={room.roomName}
-                          readOnly={isCoreRoom}
-                          onChange={(e) => {
-                            const newRooms = [...rooms];
-                            newRooms[idx].roomName = e.target.value;
-                            updateRooms(newRooms);
-                          }}
-                          className={`w-full p-2 border rounded text-sm ${isCoreRoom ? 'bg-gray-100 cursor-not-allowed' : ''}`}
-                        />
-                      </div>
-                      <div className="col-span-1">
-                        <label className="block text-[10px] font-bold uppercase mb-1">Status</label>
-                        <select
-                          value={room.status}
-                          onChange={(e) => {
-                            const newRooms = [...rooms];
-                            newRooms[idx].status = e.target.value as any;
-                            updateRooms(newRooms);
-                          }}
-                          className="w-full p-2 border rounded text-sm"
-                        >
-                          <option value="available">Available</option>
-                          <option value="live">Live</option>
-                          <option value="break">Break</option>
-                        </select>
-                      </div>
-                      <div className="col-span-1">
-                        <label className="block text-[10px] font-bold uppercase mb-1">Course</label>
-                        <input
-                          value={room.course || ""}
-                          onChange={(e) => {
-                            const newRooms = [...rooms];
-                            newRooms[idx].course = e.target.value;
-                            updateRooms(newRooms);
-                          }}
-                          className="w-full p-2 border rounded text-sm"
-                        />
-                      </div>
-                      <div className="col-span-1">
-                        <label className="block text-[10px] font-bold uppercase mb-1">Trainer</label>
-                        <input
-                          value={room.trainer || ""}
-                          onChange={(e) => {
-                            const newRooms = [...rooms];
-                            newRooms[idx].trainer = e.target.value;
-                            updateRooms(newRooms);
-                          }}
-                          className="w-full p-2 border rounded text-sm"
-                        />
-                      </div>
-                      <div className="col-span-1">
-                        <label className="block text-[10px] font-bold uppercase mb-1">Topic</label>
-                        <input
-                          value={room.topic || ""}
-                          onChange={(e) => {
-                            const newRooms = [...rooms];
-                            newRooms[idx].topic = e.target.value;
-                            updateRooms(newRooms);
-                          }}
-                          className="w-full p-2 border rounded text-sm"
-                        />
-                      </div>
-                      <div className="col-span-1 flex justify-end">
-                        <button
-                          onClick={() => {
-                            if (isCoreRoom) {
-                              // Just clear the data
+                    <div
+                      key={room.id}
+                      className={`grid grid-cols-[80px_110px_1fr_1fr_90px_1fr_70px] gap-2 px-3 py-2 items-center border-b border-gray-100 last:border-b-0 ${room.status === 'live' ? 'bg-green-50' : room.status === 'break' ? 'bg-orange-50' : 'bg-white'}`}
+                    >
+                      <input
+                        value={room.roomName}
+                        readOnly={isCoreRoom}
+                        onChange={(e) => handleQuickRoomUpdate(idx, 'roomName', e.target.value)}
+                        className={`w-full px-2 py-1.5 border border-gray-200 rounded text-sm font-bold ${isCoreRoom ? 'bg-gray-50 border-transparent cursor-not-allowed' : 'bg-white'}`}
+                      />
+                      <select
+                        value={room.status}
+                        onChange={(e) => handleQuickRoomUpdate(idx, 'status', e.target.value)}
+                        className={`w-full px-2 py-1.5 border border-gray-200 rounded text-xs font-bold ${room.status === 'live' ? 'text-green-700' : room.status === 'break' ? 'text-orange-700' : 'text-gray-600'}`}
+                      >
+                        <option value="available">Available</option>
+                        <option value="live">Live</option>
+                        <option value="break">Break</option>
+                      </select>
+                      <input
+                        value={room.course || ""}
+                        onChange={(e) => handleQuickRoomUpdate(idx, 'course', e.target.value)}
+                        placeholder="—"
+                        className="w-full px-2 py-1.5 border border-gray-200 rounded text-sm bg-white"
+                      />
+                      <input
+                        value={room.trainer || ""}
+                        onChange={(e) => handleQuickRoomUpdate(idx, 'trainer', e.target.value)}
+                        placeholder="—"
+                        className="w-full px-2 py-1.5 border border-gray-200 rounded text-sm bg-white"
+                      />
+                      <input
+                        value={room.intake || ""}
+                        onChange={(e) => handleQuickRoomUpdate(idx, 'intake', e.target.value)}
+                        placeholder="—"
+                        className="w-full px-2 py-1.5 border border-gray-200 rounded text-sm bg-white"
+                      />
+                      <input
+                        value={room.topic || ""}
+                        onChange={(e) => handleQuickRoomUpdate(idx, 'topic', e.target.value)}
+                        placeholder="—"
+                        className="w-full px-2 py-1.5 border border-gray-200 rounded text-sm bg-white"
+                      />
+                      <div className="flex justify-end gap-1">
+                        {room.status !== 'available' && (
+                          <button
+                            onClick={() => {
                               const newRooms = [...rooms];
-                              newRooms[idx] = {
-                                ...newRooms[idx],
-                                status: 'available',
-                                course: undefined,
-                                trainer: undefined,
-                                intake: undefined,
-                                topic: undefined
-                              };
+                              newRooms[idx] = { ...newRooms[idx], status: 'available', course: undefined, trainer: undefined, intake: undefined, topic: undefined };
                               updateRooms(newRooms);
-                              setStatusMessage({ text: "Room data cleared.", type: 'success' });
-                            } else {
-                              updateRooms(rooms.filter(r => r.id !== room.id));
-                            }
-                          }}
-                          className="text-red-500 p-2 hover:bg-red-50 rounded-lg"
-                          title={isCoreRoom ? "Clear Room Data" : "Delete Room"}
-                        >
-                          <Trash2 size={20} />
-                        </button>
+                              setStatusMessage({ text: `${room.roomName} cleared.`, type: 'success' });
+                            }}
+                            className="text-orange-500 p-1.5 hover:bg-orange-100 rounded"
+                            title="Clear Room"
+                          >
+                            <X size={16} />
+                          </button>
+                        )}
+                        {!isCoreRoom && (
+                          <button
+                            onClick={() => updateRooms(rooms.filter(r => r.id !== room.id))}
+                            className="text-red-500 p-1.5 hover:bg-red-50 rounded"
+                            title="Delete Room"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
                       </div>
                     </div>
                   );
                 })}
+              </div>
+
+              <div className="mt-4 bg-blue-50 border border-blue-100 rounded-lg p-3">
+                <p className="text-xs text-blue-700 font-medium flex items-center gap-2">
+                  <ExternalLink size={14} />
+                  Rooms also update when trainers sign on via the <a href="/trainer-sign-on.html" target="_blank" className="underline font-bold">Trainer Sign-On Portal</a>.
+                </p>
               </div>
             </div>
           )}
@@ -811,24 +823,65 @@ const AdminHub = ({
               </div>
 
               <div className="space-y-4">
-                <h3 className="text-xl font-bold flex items-center gap-2"><Calendar size={24} className="text-eqc-green" /> Scheduled Events</h3>
+                <h3 className="text-xl font-bold flex items-center gap-2"><Calendar size={24} className="text-eqc-green" /> Scheduled Events ({events.length})</h3>
                 <div className="grid grid-cols-1 gap-4">
                   {events.map(event => (
-                    <div key={event.id} className="bg-white p-6 rounded-xl border flex justify-between items-center shadow-sm">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-                          <Clock size={24} className="text-eqc-muted" />
+                    <div key={event.id} className="bg-white p-6 rounded-xl border shadow-sm">
+                      {editingEventId === event.id ? (
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="col-span-2">
+                            <label className="block text-[10px] font-bold uppercase mb-1">Title</label>
+                            <input
+                              value={editEventData.title ?? event.title}
+                              onChange={(e) => setEditEventData({ ...editEventData, title: e.target.value })}
+                              className="w-full p-2 border rounded text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold uppercase mb-1">Date</label>
+                            <input
+                              type="date"
+                              value={editEventData.date ?? event.date}
+                              onChange={(e) => setEditEventData({ ...editEventData, date: e.target.value })}
+                              className="w-full p-2 border rounded text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold uppercase mb-1">Description</label>
+                            <input
+                              value={editEventData.description ?? event.description}
+                              onChange={(e) => setEditEventData({ ...editEventData, description: e.target.value })}
+                              className="w-full p-2 border rounded text-sm"
+                            />
+                          </div>
+                          <div className="col-span-2 flex gap-2 justify-end">
+                            <button onClick={() => { setEditingEventId(null); setEditEventData({}); }} className="px-4 py-2 text-sm font-bold text-gray-500 hover:bg-gray-100 rounded-lg">Cancel</button>
+                            <button onClick={() => handleSaveEvent(event)} className="px-4 py-2 text-sm font-bold text-white bg-eqc-green rounded-lg flex items-center gap-2"><Save size={16} /> Save</button>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-bold text-lg">{event.title}</p>
-                          <p className="text-sm text-eqc-green font-bold">{new Date(event.date).toLocaleDateString()}</p>
+                      ) : (
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                              <Clock size={24} className="text-eqc-muted" />
+                            </div>
+                            <div>
+                              <p className="font-bold text-lg">{event.title}</p>
+                              <p className="text-sm text-eqc-green font-bold">{new Date(event.date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                              <p className="text-xs text-eqc-muted mt-1">{event.description}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button onClick={() => { setEditingEventId(event.id); setEditEventData({}); }} className="text-blue-500 p-2 hover:bg-blue-50 rounded-lg"><Edit3 size={18} /></button>
+                            <button onClick={() => updateEvents(event, 'delete')} className="text-red-500 p-2 hover:bg-red-50 rounded-lg"><Trash2 size={18} /></button>
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button onClick={() => updateEvents(event, 'delete')} className="text-red-500 p-2 hover:bg-red-50 rounded-lg"><Trash2 size={20} /></button>
-                      </div>
+                      )}
                     </div>
                   ))}
+                  {events.length === 0 && (
+                    <p className="text-eqc-muted italic text-center py-8">No events scheduled. Add one above.</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -903,46 +956,45 @@ const AdminHub = ({
           </a>
         </div>
       </div>
-    </div >
+    </div>
   );
 };
 
 const CampusMap = () => {
   return (
-    <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-lg flex-[1.2] flex flex-col overflow-hidden">
-      <div className="flex items-center gap-3 mb-4 shrink-0">
+    <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-lg flex-1 flex flex-col overflow-hidden">
+      <div className="flex items-center gap-3 mb-5 shrink-0">
         <MapPin size={24} className="text-eqc-green" />
         <h2 className="text-2xl font-bold serif">Campus & Nearby</h2>
       </div>
-      {/*CAMPUS MAP */}
-      <div className="flex-1 flex flex-col gap-3 overflow-hidden">
-        <div className="flex-1 rounded-xl overflow-hidden border border-gray-100 shadow-inner">
+      <div className="flex-1 flex flex-col gap-4 overflow-hidden">
+        <div className="flex-1 rounded-xl overflow-hidden border border-gray-100 shadow-inner min-h-0">
           <iframe
             title="Campus Map"
             width="100%"
             height="100%"
-            style={{ border: 0 }}
+            style={{ border: 0, display: 'block' }}
             src="https://maps.google.com/maps?q=2%20Gordon%20St,%20West%20Perth%20WA%206005&t=&z=16&ie=UTF8&iwloc=&output=embed"
             allowFullScreen
           ></iframe>
         </div>
 
         <div className="grid grid-cols-2 gap-3 shrink-0">
-          <div className="bg-gray-50 p-2.5 rounded-xl border border-gray-100">
-            <h3 className="text-[9px] font-black uppercase tracking-widest text-eqc-green mb-1.5 flex items-center gap-1">
-              <Coffee size={10} /> Cafes & Shopping
+          <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-eqc-green mb-2 flex items-center gap-1.5">
+              <Coffee size={12} /> Cafes & Shopping
             </h3>
-            <ul className="text-[10px] space-y-0.5 font-medium">
+            <ul className="text-xs space-y-1 font-medium">
               <li className="flex justify-between"><span>Gordon St Garage</span> <span className="text-eqc-muted">1m</span></li>
               <li className="flex justify-between"><span>Pony Express</span> <span className="text-eqc-muted">3m</span></li>
               <li className="flex justify-between"><span>Watertown Outlets</span> <span className="text-eqc-muted">5m</span></li>
             </ul>
           </div>
-          <div className="bg-gray-50 p-2.5 rounded-xl border border-gray-100">
-            <h3 className="text-[9px] font-black uppercase tracking-widest text-blue-600 mb-1.5 flex items-center gap-1">
-              <Train size={10} /> Public Transport
+          <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-blue-600 mb-2 flex items-center gap-1.5">
+              <Train size={12} /> Public Transport
             </h3>
-            <ul className="text-[10px] space-y-0.5 font-medium">
+            <ul className="text-xs space-y-1 font-medium">
               <li className="flex justify-between"><span>City West Station</span> <span className="text-eqc-muted">4m</span></li>
               <li className="flex justify-between"><span>Bus 81, 82, 83, 84</span> <span className="text-eqc-muted">2m</span></li>
               <li className="flex justify-between"><span>Yellow CAT Bus</span> <span className="text-eqc-muted">3m</span></li>
@@ -1039,9 +1091,9 @@ const FloorPlan = () => {
       </div>
       <div className="flex-1 rounded-xl overflow-hidden border border-gray-100 bg-gray-50 relative flex items-center justify-center">
         <img
-          src="/images/eqc-perth-floorplan-1280x.png"
+          src="/images/eqc-perth-map-2048x.png"
           alt="Campus Floor Plan"
-          className="w-full h-full object-contain p-2"
+          className="w-full h-full object-cover scale-110"
           referrerPolicy="no-referrer"
         />
         <div className="absolute inset-0 flex items-end justify-center pb-4 pointer-events-none">
@@ -1104,7 +1156,7 @@ export default function App() {
   };
 
   return (
-    <div className="h-screen w-screen flex flex-col font-sans overflow-hidden bg-eqc-bg relative">
+    <div className="h-screen w-full flex flex-col font-sans overflow-x-hidden overflow-y-auto bg-eqc-bg relative">
       <AnimatePresence>
         {showAdmin && (
           <AdminHub
@@ -1130,97 +1182,53 @@ export default function App() {
 
       <Header />
 
-      <main className="flex-1 flex flex-col p-6 overflow-hidden gap-6">
-        <div className="flex-1 flex gap-6 overflow-hidden">
+      <main className="flex-1 flex flex-col p-6 min-h-0 gap-6">
+        <div className="flex-1 flex gap-6 min-h-0">
           {/* Left Column: Floorplan & Upcoming Events */}
-          <div className="w-1/4 shrink-0 flex flex-col overflow-hidden gap-6">
-            {/* Spacer to align with Room 1 tile top (Title height + margin) */}
+          <div className="w-1/4 shrink-0 flex flex-col min-h-0">
+            {/* Spacer to align with Room 1 tile top (matches center heading + right column spacer) */}
             <div className="h-8 mb-4 shrink-0" />
-            <div className="flex-[3] overflow-hidden">
-              <FloorPlan />
-            </div>
-            <div className="flex-[2] overflow-hidden">
-              <EventList events={events} />
+            <div className="flex-1 flex flex-col gap-6 min-h-0">
+              <div className="flex-[3] min-h-0">
+                <FloorPlan />
+              </div>
+              <div className="flex-[2] min-h-0">
+                <EventList events={events} />
+              </div>
             </div>
           </div>
 
           {/* Center Column: Room Allocations */}
-          <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 flex flex-col min-h-0">
             <div className="flex items-center gap-3 h-8 mb-4 shrink-0">
               <div className="w-2.5 h-2.5 bg-eqc-green rounded-full shadow-[0_0_15px_rgba(26,122,84,0.8)] animate-pulse"></div>
               <h2 className="text-2xl font-bold serif text-white">Today's Room Allocations</h2>
             </div>
 
-            <div className="flex-1 flex flex-col gap-3 overflow-hidden">
+            <div className="flex-1 flex flex-col gap-3 overflow-y-auto custom-scrollbar pr-2 pb-2">
               {rooms.map((room) => (
                 <RoomItem key={room.id} room={room} />
               ))}
             </div>
           </div>
 
-          {/* Right Column: Widgets */}
-          <div className="w-1/4 flex flex-col shrink-0 overflow-hidden">
+          {/* Right Column: Campus Map + Mobile View */}
+          <div className="w-1/4 flex flex-col shrink-0 min-h-0">
             {/* Spacer to align with Room 1 tile top */}
             <div className="h-8 mb-4 shrink-0" />
-            <div className="flex-1 flex flex-col gap-6 overflow-hidden">
-              <WeatherWidget />
+            <div className="flex-1 flex flex-col gap-6 min-h-0">
               <CampusMap />
+              <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-lg flex items-center gap-4 shrink-0">
+                <div className="w-20 h-20 bg-gray-50 rounded-xl flex items-center justify-center p-1.5 shrink-0 border border-gray-100">
+                  <QRCodeSVG value={typeof window !== 'undefined' ? window.location.origin : ''} size={70} />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-xl font-bold serif mb-0.5 leading-tight">Mobile View</h3>
+                  <p className="text-[11px] text-eqc-green font-bold tracking-tight">Scan to view on your phone</p>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-
-        {/* Bottom Row: Info Tiles */}
-        <div className="grid grid-cols-4 gap-6 shrink-0 h-32">
-          <div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-xl flex items-center gap-5">
-            <div className="w-24 h-24 bg-gray-50 rounded-2xl flex items-center justify-center p-2 shrink-0 border border-gray-100">
-              <QRCodeSVG value="https://study.equinimcollege.com" size={80} />
-            </div>
-            <div>
-              <h3 className="text-2xl font-bold serif mb-0.5">Study Hub</h3>
-              <p className="text-xs text-eqc-green font-black tracking-tight">study.equinimcollege.com</p>
-            </div>
-          </div>
-
-          <div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-xl flex items-center gap-5">
-            <div className="w-24 h-24 bg-gray-50 rounded-2xl flex items-center justify-center p-2 shrink-0 border border-gray-100">
-              <QRCodeSVG value="WIFI:S:EQC-network;T:WPA;P:Equ1n1m6005;;" size={80} />
-            </div>
-            <div>
-              <h3 className="text-2xl font-bold serif mb-0.5">Campus WiFi</h3>
-              <p className="text-xs text-eqc-green font-black tracking-tight">EQC-network</p>
-              <p className="text-[10px] text-eqc-muted mt-0.5 font-black">PW: Equ1n1m6005</p>
-            </div>
-          </div>
-
-          <a
-            href="https://equinimcollege.com/courses/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="bg-eqc-green p-5 rounded-3xl shadow-xl flex items-center gap-5 text-white hover:bg-eqc-green/90 transition-all border border-white/10"
-          >
-            <div className="w-24 h-24 bg-white/20 rounded-2xl flex items-center justify-center p-2 shrink-0 border border-white/20">
-              <QRCodeSVG value="https://equinimcollege.com/courses/" size={80} fgColor="#ffffff" bgColor="transparent" />
-            </div>
-            <div>
-              <h3 className="text-2xl font-bold serif mb-0.5">Our Courses</h3>
-              <p className="text-xs opacity-90 font-black tracking-tight">Scan to explore</p>
-            </div>
-          </a>
-
-          <a
-            href="https://www.instagram.com/eqcinstitute/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="bg-white p-5 rounded-3xl border border-gray-100 shadow-xl flex items-center gap-5 hover:bg-gray-50 transition-all"
-          >
-            <div className="w-24 h-24 bg-pink-50 rounded-2xl flex items-center justify-center shrink-0 border border-pink-100">
-              <Instagram size={40} className="text-pink-600" />
-            </div>
-            <div>
-              <h3 className="text-2xl font-bold serif mb-0.5">Instagram</h3>
-              <p className="text-xs text-eqc-muted font-black tracking-tight">@eqcinstitute</p>
-            </div>
-          </a>
         </div>
       </main>
 

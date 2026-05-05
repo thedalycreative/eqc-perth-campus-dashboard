@@ -32,7 +32,7 @@ async function startServer() {
   app.use(express.json());
 
   // Initial Room State
-  let rooms = [
+  let rooms: { id: number; roomName: string; status: string; course?: string; trainer?: string; intake?: string; topic?: string }[] = [
     { id: 1, roomName: 'Room 1', status: 'available' },
     { id: 2, roomName: 'Room 2', status: 'available' },
     { id: 3, roomName: 'Room 3', status: 'available' },
@@ -159,6 +159,33 @@ async function startServer() {
     } else {
       res.status(401).json({ ok: false });
     }
+  });
+
+  // Webhook for Google Forms (Apps Script) to update room allocations
+  app.post("/api/form-webhook", (req, res) => {
+    const { name, room, course, intake, topics } = req.body;
+    if (!name || !room || !course) {
+      res.status(400).json({ error: "Missing required fields: name, room, course" });
+      return;
+    }
+
+    const staffMember = { name, room, course, intake: intake || "", topics: topics || "Class in session", id: Date.now(), timestamp: new Date().toISOString() };
+    staffOnCampus.push(staffMember);
+    timesheetLog.push(staffMember);
+    io.emit("staff_updated", staffOnCampus);
+    io.emit("timesheet_updated", timesheetLog);
+
+    const roomNum = parseInt(room.replace('Room ', ''));
+    if (!isNaN(roomNum) && roomNum >= 1 && roomNum <= 6) {
+      const roomIndex = rooms.findIndex(r => r.id === roomNum);
+      if (roomIndex !== -1) {
+        rooms[roomIndex] = { ...rooms[roomIndex], status: 'live', course, trainer: name, intake: intake || "", topic: topics || "Class in session" };
+      }
+    } else {
+      rooms.push({ id: Date.now(), roomName: room, status: 'live', course, trainer: name, intake: intake || "", topic: topics || "Class in session" });
+    }
+    io.emit("rooms_updated", rooms);
+    res.json({ success: true });
   });
 
   app.post("/api/update-announcements", (req, res) => {
